@@ -3,6 +3,8 @@
 
 # PyBullet UR-5 from https://github.com/josepdaniel/UR5Bullety
 
+#!/usr/bin/env python3
+
 import numpy as np
 from itertools import count
 from collections import namedtuple
@@ -12,6 +14,7 @@ import torch
 from argparse import ArgumentParser
 import gym
 from gym_env import ur5GymEnv
+import pybullet as p 
 
 title = 'PyBullet UR5 robot'
 
@@ -44,8 +47,7 @@ np.set_printoptions(precision=2, suppress=True)
 torch.set_printoptions(profile="full", precision=2)
 
 # create the environment
-print(title)
-args.env_name = title
+
 env = ur5GymEnv(renders=args.render, maxSteps=args.mel, useIK=args.useIK,
         actionRepeat=args.repeat, task=args.task, randObjPos=args.randObjPos,
         simulatedGripper=args.simgrip, learning_param=args.lp)
@@ -55,24 +57,21 @@ args.data_size = obs.shape[0]
 
 def main():
     
-    positions = [0.,0.,0.,0.,0.,0.,0.]
-    # [[-0.6,0,0.1,0],[0,0.6,0.1,0],[0,0,-0.6,0],[0,0,0,0],
-                 # [0,0,-0.6,0],[0,-0.6,0.1,0],[-0.6,0.1,0,0],[0,0,0,0]]
-    
+    positions = [0.0, 0.0, 0.0, -0.0, -0.0, 0.0, 0.0]  # gripper: 1.0 (close), -1.0 (open)
     state = env.reset()
     ep_reward = 0
 
-    for i in range(3):
+    # print("inverse kinematics: \n\n\n", env.calculate_ik([0, -1.57, 0, 0, 0, 0], [0, 0, 0]))
+
+    for i in range(300):
         for t in range(1, args.mel):
 
-            # p = int(t/20)
-            action = positions#[p]
-            state, reward, env_done, info = env.step(action)  
-        
-            # print(t, env.target_dist)
-            # input()
+            state, reward, env_done, info = env.step(positions)  
 
             ep_reward += reward
+
+    while True:
+        p.stepSimulation()
 
 
 if __name__ == '__main__':

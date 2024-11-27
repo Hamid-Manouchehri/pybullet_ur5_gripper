@@ -52,7 +52,7 @@ class ur5GymEnv(gym.Env):
         self.actionRepeat = actionRepeat
         self.useIK = useIK
 
-        # setup pybullet sim:
+        # setup pybullet server:
         if self.renders:
             pybullet.connect(pybullet.GUI)
         else:
@@ -102,7 +102,7 @@ class ur5GymEnv(gym.Env):
             self.joints[info.name] = info
 
         # object:
-        self.initial_obj_pos = [0.8, 0.1, 0.0] # initial object pos
+        self.initial_obj_pos = [.8, 0.0, 0.0] # initial object pos
         self.initial_target_pos = [0.9, -0.2, 0.0] # initial drop-off position
         self.obj = pybullet.loadURDF(CUBE_URDF_PATH, self.initial_obj_pos)
 
@@ -126,6 +126,7 @@ class ur5GymEnv(gym.Env):
         self.reset()
         high = np.array([10]*self.observation.shape[0])
         self.observation_space = spaces.Box(-high, high, dtype='float32')
+
 
     def set_joint_angles(self, joint_angles):
         poses = []
@@ -216,11 +217,12 @@ class ur5GymEnv(gym.Env):
         pybullet.resetBasePositionAndOrientation(self.obj, self.initial_obj_pos, [0.,0.,0.,1.0]) # reset object pos
 
         # reset robot simulation and position:
-        joint_angles = (-0.34, -1.57, 1.80, -1.57, -1.57, 0.00) # pi/2 = 1.5707
+        # joint_angles = (-0.34, -1.57, 1.80, -1.57, -1.57, 0.00) # pi/2 = 1.5707
+        joint_angles = (-0.0, -0.0, 0.0, -0.0, -0.0, 0.0) # pi/2 = 1.5707
         self.set_joint_angles(joint_angles)
 
         # reset gripper:
-        self.control_gripper(-0.4) # open
+        self.control_gripper(0.0) # open
 
         # step simualator:
         for i in range(100):
@@ -251,12 +253,15 @@ class ur5GymEnv(gym.Env):
 
         # add delta position:
         new_p = np.array(cur_p[0]) + arm_action
-        
+
+
         # actuate:
         if self.useIK:
             joint_angles = self.calculate_ik(new_p, self.ur5_or) # XYZ and angles set to zero
+            
         else:
             joint_angles = new_p
+            print("joint angles:\n\n\n", joint_angles)
 
         self.set_joint_angles(joint_angles)
 
