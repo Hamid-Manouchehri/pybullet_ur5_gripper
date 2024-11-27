@@ -187,7 +187,7 @@ class ur5GymEnv(gym.Env):
         upper_limits = [math.pi]*6
         joint_ranges = [2*math.pi]*6
         # rest_poses = [0, -math.pi/2, -math.pi/2, -math.pi/2, -math.pi/2, 0]
-        rest_poses = [(-0.34, -1.57, 1.80, -1.57, -1.57, 0.00)] # rest pose of our ur5 robot
+        rest_poses = [(-0.34, -1.57, 1.80, -1.57, -1.57, 0.0)] # rest pose of our ur5 robot
 
         joint_angles = pybullet.calculateInverseKinematics(
             self.ur5, self.end_effector_index, position, quaternion, 
@@ -253,6 +253,7 @@ class ur5GymEnv(gym.Env):
 
         # add delta position:
         new_p = np.array(cur_p[0]) + arm_action
+        print("asldkfjlaksdjflksajd:        ", new_p)
 
 
         # actuate:
@@ -261,7 +262,7 @@ class ur5GymEnv(gym.Env):
             
         else:
             joint_angles = new_p
-            print("joint angles:\n\n\n", joint_angles)
+            # print("joint angles:\n\n\n", joint_angles)
 
         self.set_joint_angles(joint_angles)
 
