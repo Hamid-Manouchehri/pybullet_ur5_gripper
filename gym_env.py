@@ -22,7 +22,8 @@ from attrdict import AttrDict
 
 ROBOT_URDF_PATH = "robots/urdf/ur5e_with_gripper.urdf"
 TABLE_URDF_PATH = os.path.join(pybullet_data.getDataPath(), "table/table.urdf")
-CUBE_URDF_PATH = os.path.join(pybullet_data.getDataPath(), "cube_small.urdf")
+# CUBE_URDF_PATH = os.path.join(pybullet_data.getDataPath(), "cube_small.urdf")
+CUBE_URDF_PATH = "/home/hamid/projects/pybullet_ur5_gripper/object/cube.urdf"
 
 # x,y,z distance
 def goal_distance(goal_a, goal_b):
@@ -79,11 +80,13 @@ class ur5GymEnv(gym.Env):
         flags = pybullet.URDF_USE_SELF_COLLISION
         self.ur5 = pybullet.loadURDF(ROBOT_URDF_PATH, [0, 0, 0], [0, 0, 0, 1], flags=flags)
         self.num_joints = pybullet.getNumJoints(self.ur5)
+        print("number of joints: ", self.num_joints)
         self.control_joints = ["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"]
         self.joint_type_list = ["REVOLUTE", "PRISMATIC", "SPHERICAL", "PLANAR", "FIXED"]
         self.joint_info = namedtuple("jointInfo", ["id", "name", "type", "lowerLimit", "upperLimit", "maxForce", "maxVelocity", "controllable"])
 
         self.joints = AttrDict()
+
         for i in range(self.num_joints):
             info = pybullet.getJointInfo(self.ur5, i)
             jointID = info[0]
@@ -102,7 +105,7 @@ class ur5GymEnv(gym.Env):
             self.joints[info.name] = info
 
         # object:
-        self.initial_obj_pos = [.8, 0.0, 0.0] # initial object pos
+        self.initial_obj_pos = [0.666, 0.132, 0.0] # initial object pos
         self.initial_target_pos = [0.9, -0.2, 0.0] # initial drop-off position
         self.obj = pybullet.loadURDF(CUBE_URDF_PATH, self.initial_obj_pos)
 
@@ -148,6 +151,28 @@ class ur5GymEnv(gym.Env):
             forces=forces
         )
 
+
+    def set_joint_angles_velocity_control(self, joint_angles, joint_velocities):
+        poses = []
+        indexes = []
+        forces = []
+
+        for i, name in enumerate(self.control_joints):
+            joint = self.joints[name]
+            poses.append(joint_angles[i])
+            indexes.append(joint.id)
+            forces.append(joint.maxForce)
+
+        pybullet.setJointMotorControlArray(
+            self.ur5, indexes,
+            pybullet.VELOCITY_CONTROL,
+            targetPositions=joint_angles,
+            targetVelocities=joint_velocities,
+            positionGains=[0.05]*len(poses),
+            forces=forces
+        )
+
+
     def control_gripper(self, gripper_opening_angle):
         pybullet.setJointMotorControl2(
             self.ur5,
@@ -187,7 +212,8 @@ class ur5GymEnv(gym.Env):
         upper_limits = [math.pi]*6
         joint_ranges = [2*math.pi]*6
         # rest_poses = [0, -math.pi/2, -math.pi/2, -math.pi/2, -math.pi/2, 0]
-        rest_poses = [(-0.34, -1.57, 1.80, -1.57, -1.57, 0.0)] # rest pose of our ur5 robot
+        # rest_poses = [(-0.34, -1.57, 1.80, -1.57, -1.57, 0.0)] # rest pose of our ur5 robot
+        rest_poses = [(-0.0, -0.0, 0.0, -0.0, -0.0, 0.0)] # rest pose of our ur5 robot
 
         joint_angles = pybullet.calculateInverseKinematics(
             self.ur5, self.end_effector_index, position, quaternion, 
@@ -253,7 +279,6 @@ class ur5GymEnv(gym.Env):
 
         # add delta position:
         new_p = np.array(cur_p[0]) + arm_action
-        print("asldkfjlaksdjflksajd:        ", new_p)
 
 
         # actuate:
