@@ -1,36 +1,25 @@
-# E. Culurciello
-# February 2021
+'''
+Hamid Manouchehri
+Nov, 2024
 
-# PyBullet UR-5 from https://github.com/josepdaniel/UR5Bullety
+Optimization project, in hand manipulation of object.
+grasping an object in such a way to determine COM by handling object.
 
+reference: https://github.com/culurciello/pybullet_ur5_gripper, 
+           https://github.com/josepdaniel/UR5Bullety
+'''
 #!/usr/bin/env python3
 
 import numpy as np
-from itertools import count
-from collections import namedtuple
-import time, math
-from random import randint
-import torch
-from argparse import ArgumentParser
-import gym
 from gym_env import ur5GymEnv
 import pybullet as p 
 
-title = 'PyBullet UR5 robot'
-
-np.set_printoptions(precision=2, suppress=True)
-torch.set_printoptions(profile="full", precision=2)
-
 # create the environment
-
 env = ur5GymEnv(renders=True, maxSteps=120, useIK=True,
         actionRepeat=1, task=0, randObjPos=False,
         simulatedGripper=False, learning_param=0.05)
 
 robot_id = env.ur5
-
-# obs = env.reset()
-# data_size = obs.shape[0]
 
 
 def control_joint_velocity(robot_id, joint_index, desired_angle, desired_velocity, angle_threshold=0.01, max_force=150):
@@ -53,7 +42,7 @@ def control_joint_velocity(robot_id, joint_index, desired_angle, desired_velocit
     
     # Calculate the error
     error = desired_angle - current_angle
-    print("joint ", joint_index, " error: ", error, " desired angle: ", desired_angle, "current angle: ", current_angle)
+    # print("joint ", joint_index, " error: ", error, " desired angle: ", desired_angle, "current angle: ", current_angle)
     # print("error: ", joint_index, " ", error)
 
     if abs(error) > angle_threshold:
@@ -90,78 +79,36 @@ def main():
 
     eff_index = 7  # End-effector index
 
-    init_joint_angles = np.array([
-    0.,                                         # shoulder_pan
-    -np.pi/3,                                   # shoulder_lift
-    np.pi/2,                                   # elbow
-    -4*np.pi/6,                                 # wrist_1
-    -np.pi/2 + .1,                              # wrist_2
-    0.])                                        # wrist_3 (rad) TODO
+    t = 0
+    time_step = .001  # TODO
+    trailDuration = 15
+    prevPose=[0,0,0]
+    prevPose1=[0,0,0]
+    hasPrevPose = 0
 
-    init_joint_vel = np.array([
-    0.,                                         # shoulder_pan
-    -3.,                                        # shoulder_lift
-    2.,                                         # elbow
-    3.,                                         # wrist_1
-    3.,                                         # wrist_2
-    0.])                                        # wrist_3 rad / sec, TODO
+    while 1:
 
+        t = t + time_step
 
-    reach_status = []
-    while True:  # joint_control for inintial configuration of the robot
+        pos = [0.817 - t, 0.234, 0.063 + t]
+        init_end_effector_orient = [-np.pi, 0., np.pi/2]  # Euler angles [roll, pitch, yaw]
 
-        for joint_index, _ in enumerate(init_joint_vel):
-            reached = control_joint_velocity(
-                robot_id=robot_id,
-                joint_index=joint_index,
-                desired_angle=init_joint_angles[joint_index],
-                desired_velocity=init_joint_vel[joint_index],
-                angle_threshold=0.1,
-                max_force=150
-            )
-            reach_status.append(reached)
+        for i in range (1):
+            
+            
+            all_joint_angles = env.calculate_ik(pos, init_end_effector_orient)
+            ur5_joint_angles = all_joint_angles[:6]  # Use the first 6 joints for UR5
 
-        # gripper_action = .4
-        # gripper_action = np.clip(gripper_action/2.5, -0.4, 0.4)
-        # env.control_gripper(gripper_action)
+            env.set_joint_angles(ur5_joint_angles)
+            p.stepSimulation()
 
-        if all(reach_status):
-            print("\n\n\n initial configuration completed \n\n\n")
-            break
-
-        reach_status = []  # reset the list
-        p.stepSimulation()
-        time.sleep(0.05)
-
-    end_effector_pos = [0.41, 0.0, .163]  # [x, y, z]
-    end_effector_orient = [-np.pi, 0., np.pi/2]  # Euler angles [roll, pitch, yaw]
-
-    # Calculate inverse kinematics for the target position
-    all_joint_angles = env.calculate_ik(end_effector_pos, end_effector_orient)
-    ur5_joint_angles = all_joint_angles[:6]  # Use the first 6 joints for UR5
-
-    while True:
-        # Command the robot to move to the calculated joint angles
-        env.set_joint_angles(ur5_joint_angles)
-
-        # Optional: Control the gripper
-        gripper_action = -0.1  # [-0.4, 0.4] for open/close
-        env.control_gripper(gripper_action)
-
-        # Check if the end-effector is close enough to the target position
-        current_pos = env.get_current_pose()[0]
-        print("Current end-effector position:", current_pos)
-        if np.allclose(current_pos, end_effector_pos, atol=1e-3):  # Tolerance of 1 mm
-            print("Target position reached!")
-            break
-
-        # Step the simulation
-
-        pose, orient = env.get_current_pose()
-        print("end effector pose: ", pose, p.getEulerFromQuaternion(orient))
-        p.stepSimulation()
-        time.sleep(0.05)
-
+        ls = p.getLinkState(robot_id, eff_index)	
+        if (hasPrevPose):
+            p.addUserDebugLine(prevPose,pos,[0,0,0.3],1,trailDuration)
+            p.addUserDebugLine(prevPose1,ls[4],[1,0,0],1,trailDuration)
+        prevPose=pos
+        prevPose1=ls[4]
+        hasPrevPose = 1	
 
 
 if __name__ == '__main__':

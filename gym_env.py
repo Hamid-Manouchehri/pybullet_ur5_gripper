@@ -217,7 +217,7 @@ class ur5GymEnv(gym.Env):
 
         joint_angles = pybullet.calculateInverseKinematics(
             self.ur5, self.end_effector_index, position, quaternion, 
-            jointDamping=[0.01]*6, upperLimits=upper_limits, 
+            jointDamping=[0.01]*12 , upperLimits=upper_limits, 
             lowerLimits=lower_limits, jointRanges=joint_ranges, 
             restPoses=rest_poses
         )
