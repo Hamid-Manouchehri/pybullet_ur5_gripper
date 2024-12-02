@@ -6,3 +6,4 @@ object/mjcf/
 object/roboschool/
 object/stadium.sdf
 humanoidTimings.json_0.json
+__pycache__/gym_env.cpython-39.pyc

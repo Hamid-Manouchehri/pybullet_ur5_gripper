@@ -29,8 +29,8 @@ env = ur5GymEnv(renders=True, maxSteps=120, useIK=True,
 
 robot_id = env.ur5
 
-obs = env.reset()
-data_size = obs.shape[0]
+# obs = env.reset()
+# data_size = obs.shape[0]
 
 
 def control_joint_velocity(robot_id, joint_index, desired_angle, desired_velocity, angle_threshold=0.01, max_force=150):
@@ -132,6 +132,36 @@ def main():
         reach_status = []  # reset the list
         p.stepSimulation()
         time.sleep(0.05)
+
+    end_effector_pos = [0.41, 0.0, .163]  # [x, y, z]
+    end_effector_orient = [-np.pi, 0., np.pi/2]  # Euler angles [roll, pitch, yaw]
+
+    # Calculate inverse kinematics for the target position
+    all_joint_angles = env.calculate_ik(end_effector_pos, end_effector_orient)
+    ur5_joint_angles = all_joint_angles[:6]  # Use the first 6 joints for UR5
+
+    while True:
+        # Command the robot to move to the calculated joint angles
+        env.set_joint_angles(ur5_joint_angles)
+
+        # Optional: Control the gripper
+        gripper_action = -0.1  # [-0.4, 0.4] for open/close
+        env.control_gripper(gripper_action)
+
+        # Check if the end-effector is close enough to the target position
+        current_pos = env.get_current_pose()[0]
+        print("Current end-effector position:", current_pos)
+        if np.allclose(current_pos, end_effector_pos, atol=1e-3):  # Tolerance of 1 mm
+            print("Target position reached!")
+            break
+
+        # Step the simulation
+
+        pose, orient = env.get_current_pose()
+        print("end effector pose: ", pose, p.getEulerFromQuaternion(orient))
+        p.stepSimulation()
+        time.sleep(0.05)
+
 
 
 if __name__ == '__main__':
