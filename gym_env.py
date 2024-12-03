@@ -105,7 +105,7 @@ class ur5GymEnv(gym.Env):
             self.joints[info.name] = info
 
         # object:
-        self.initial_obj_pos = [0.666, 0.132, 0.0] # initial object pos
+        self.initial_obj_pos = [0.5, 0.145, 0.0] # initial object pos
         self.initial_target_pos = [0.9, -0.2, 0.0] # initial drop-off position
         self.obj = pybullet.loadURDF(CUBE_URDF_PATH, self.initial_obj_pos)
 
